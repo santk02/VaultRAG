@@ -1,0 +1,114 @@
+name: VaultRAG CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff black mypy
+      - name: Run Ruff
+        run: ruff check app/
+      - name: Run Black
+        run: black --check app/
+      - name: Run MyPy
+        run: mypy app/ --ignore-missing-imports
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vaultrag
+          POSTGRES_PASSWORD: vaultrag
+          POSTGRES_DB: vaultrag
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      qdrant:
+        image: qdrant/qdrant:v1.7.0
+        ports:
+          - 6333:6333
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          pytest tests/ -v --cov=app --cov-report=xml
+        env:
+          DATABASE_URL: postgresql://vaultrag:vaultrag@localhost:5432/vaultrag
+          QDRANT_HOST: localhost
+          QDRANT_PORT: 6333
+          MODE: offline
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+
+  evaluation:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vaultrag
+          POSTGRES_PASSWORD: vaultrag
+          POSTGRES_DB: vaultrag
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      qdrant:
+        image: qdrant/qdrant:v1.7.0
+        ports:
+          - 6333:6333
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run RAGAS evaluation
+        run: python evaluation/run_ragas.py
+        env:
+          DATABASE_URL: postgresql://vaultrag:vaultrag@localhost:5432/vaultrag
+          QDRANT_HOST: localhost
+          QDRANT_PORT: 6333
+      - name: Check thresholds
+        run: |
+          python scripts/check_thresholds.py
+        env:
+          DATABASE_URL: postgresql://vaultrag:vaultrag@localhost:5432/vaultrag
+          QDRANT_HOST: localhost
+          QDRANT_PORT: 6333

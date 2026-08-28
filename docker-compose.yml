@@ -1,0 +1,78 @@
+services:
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:v1.7.0
+    container_name: vaultrag-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - vaultrag-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: vaultrag-postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    environment:
+      - POSTGRES_USER=vaultrag
+      - POSTGRES_PASSWORD=vaultrag
+      - POSTGRES_DB=vaultrag
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vaultrag"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - vaultrag-network
+
+  # Langfuse Observability Platform
+  langfuse:
+    image: langfuse/langfuse:latest
+    container_name: vaultrag-langfuse
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@langfuse-postgres:5432/langfuse
+      - NEXTAUTH_SECRET=local_dev_secret_change_in_production
+      - NEXTAUTH_URL=http://localhost:3000
+      - SALT=local_dev_salt_change_in_production
+    depends_on:
+      - langfuse-postgres
+    networks:
+      - vaultrag-network
+
+  # Langfuse PostgreSQL
+  langfuse-postgres:
+    image: postgres:16-alpine
+    container_name: vaultrag-langfuse-postgres
+    volumes:
+      - langfuse_postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=langfuse
+    networks:
+      - vaultrag-network
+
+volumes:
+  qdrant_data:
+  postgres_data:
+  langfuse_postgres_data:
+
+networks:
+  vaultrag-network:
+    driver: bridge

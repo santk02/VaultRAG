@@ -1,0 +1,39 @@
+{
+  "questions": [
+    {
+      "id": "q001",
+      "question": "What are the document retention requirements for banking compliance?",
+      "expected_answer": "Banking compliance requires 7-year retention for transaction records and 5-year retention for customer communications.",
+      "difficulty": "medium",
+      "domain": "banking"
+    },
+    {
+      "id": "q002", 
+      "question": "What is the approval process for new policies?",
+      "expected_answer": "New policies require approval from the compliance committee and sign-off from the chief risk officer.",
+      "difficulty": "medium",
+      "domain": "banking"
+    },
+    {
+      "id": "q003",
+      "question": "What are the penalties for non-compliance?",
+      "expected_answer": "Penalties include fines up to $10,000 per violation and potential regulatory action.",
+      "difficulty": "simple",
+      "domain": "banking"
+    },
+    {
+      "id": "q004",
+      "question": "How should patient data be protected according to healthcare regulations?",
+      "expected_answer": "Patient data must be encrypted at rest and in transit, with access limited to authorized personnel only.",
+      "difficulty": "medium",
+      "domain": "healthcare"
+    },
+    {
+      "id": "q005",
+      "question": "What is the timeline for reporting security incidents?",
+      "expected_answer": "Security incidents must be reported within 72 hours of discovery to the relevant regulatory body.",
+      "difficulty": "simple",
+      "domain": "healthcare"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "faithfulness": 0.80,
+  "relevancy": 0.75,
+  "context_precision": 0.70,
+  "context_recall": 0.75,
+  "citation_accuracy": 1.0,
+  "retrieval_accuracy": 0.85
+}
