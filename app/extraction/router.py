@@ -23,6 +23,9 @@ async def extract(request: ExtractionRequest) -> ExtractionResponse:
         )
 
     started = time.time()
+    # Reuses generate() (built for Q&A) as a generic JSON-extraction call by passing
+    # an empty chunk list — the schema's own JSON Schema is embedded in the prompt so
+    # the model knows the exact field names/types to return.
     prompt = (
         "Extract the requested fields from the document. Return JSON only, "
         f"matching this schema: {schema.model_json_schema()}\n\n"
@@ -31,11 +34,9 @@ async def extract(request: ExtractionRequest) -> ExtractionResponse:
     generator = get_generator()
     model_name = generator.get_model_name(mode=settings.mode)
     try:
-        response = await generator.generate(
-            question=prompt,
-            chunks=[],
-            mode=settings.mode,
-        )
+        # complete(), not generate() — generate() would apply the citation-enforcing
+        # Q&A system prompt and corrupt the JSON output.
+        response = await generator.complete(prompt=prompt, mode=settings.mode)
         payload: Any = json.loads(response[0])
         validated = schema.model_validate(payload)
     except (json.JSONDecodeError, ValueError, TypeError) as exc:

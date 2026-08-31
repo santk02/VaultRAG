@@ -10,6 +10,19 @@ from app.retrieval.reranker import rerank_chunks
 from app.retrieval.vector_search import vector_search
 
 
+async def _timed(coro, latencies: Dict[str, float], key: str):
+    """Run a coroutine and record its own wall-clock duration under `key`.
+
+    Needed because asyncio.gather runs both searches concurrently — wrapping each one
+    individually (instead of timing the gather() call once) gives a true per-stage
+    latency instead of reporting the same shared wall-clock duration for both.
+    """
+    start = time.time()
+    result = await coro
+    latencies[key] = (time.time() - start) * 1000
+    return result
+
+
 async def retrieval_pipeline(
     query: str, top_k: int = 5
 ) -> tuple[List[Chunk], Dict[str, float]]:
@@ -32,14 +45,16 @@ async def retrieval_pipeline(
     latencies = {}
     total_start = time.time()
 
-    # The independent searches share the same query and can run concurrently.
-    search_start = time.time()
+    # The independent searches share the same query and run concurrently; each is timed
+    # individually via _timed so bm25_ms/vector_ms reflect each stage's own duration
+    # rather than the shared wall-clock time of the parallel block.
     bm25_results, vector_results = await asyncio.gather(
-        bm25_search(query), vector_search(query)
+        _timed(bm25_search(query), latencies, "bm25_ms"),
+        _timed(vector_search(query), latencies, "vector_ms"),
     )
-    search_elapsed_ms = (time.time() - search_start) * 1000
-    latencies["bm25_ms"] = search_elapsed_ms
-    latencies["vector_ms"] = search_elapsed_ms
+    # Wall-clock time actually spent waiting on the parallel block (<= sum of the two stages
+    # above since they overlap) — useful for accounting for the "total" latency budget.
+    latencies["parallel_search_ms"] = max(latencies["bm25_ms"], latencies["vector_ms"])
 
     # Stage 3: RRF fusion
     stage_start = time.time()
@@ -89,6 +104,8 @@ async def _get_chunks(chunk_ids: List[str]) -> List[Chunk]:
     results = await db.fetch(query, chunk_ids)
     rows_by_id = {row["chunk_id"]: row for row in results}
 
+    # Rebuild in reranked order (dict lookup, not the DB's arbitrary row order) and
+    # silently drop any chunk_id the DB no longer has (e.g. deleted between rerank and fetch)
     chunks = [
         Chunk(
             chunk_id=chunk_id,

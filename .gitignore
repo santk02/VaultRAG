@@ -48,8 +48,12 @@ data/sample_docs/*
 *.index
 fine_tuning/dataset/*
 !fine_tuning/dataset/.gitkeep
+fine_tuning/adapters/
 evaluation/results/*
 !evaluation/results/.gitkeep
+
+# Upload staging dir (app/ingestion/router.py writes temp files here)
+temp/
 
 # Logs
 *.log

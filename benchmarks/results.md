@@ -9,53 +9,53 @@
 
 ## Models Tested
 
-### Primary Model: Llama 3.1 8B Instruct
+`benchmarks/model_benchmark.py` compares `settings.offline_model` against
+`settings.alternative_model` (see `app/config.py` / `.env.example`) — currently:
+
+### Primary Model: Mistral 7B (`offline_model` default)
+- **Ollama ID**: `mistral`
+- **VRAM**: ~4-5GB (INT4)
+- **Strengths**: Solid instruction following at a size that runs comfortably on a laptop CPU/small GPU — the blueprint's stated dev default
+
+### Alternative Model: Llama 3.1 8B (`alternative_model` default)
 - **Ollama ID**: `llama3.1:8b`
 - **Context Window**: 128K tokens
 - **VRAM**: ~6.5GB (INT4)
-- **Strengths**: Best instruction following, coding capability, lower VRAM
-
-### Alternative Model: Gemma 2 9B
-- **Ollama ID**: `gemma2:9b`
-- **Context Window**: 8K tokens
-- **VRAM**: ~7GB (INT4)
-- **Strengths**: Better context utilization for RAG workloads
+- **Strengths**: Better instruction following/benchmarks at the cost of more VRAM and latency
 
 ## Benchmark Results
 
-*Note: Results will be populated after running the benchmark script with actual Ollama models.*
+*Note: Results will be populated after running the benchmark script with actual Ollama models
+and a live VaultRAG stack (Qdrant + Postgres + indexed documents). Not run in this audit —
+no live services in this sandbox. Numbers below are placeholders pending a real run.*
 
 ### Performance Comparison
 
 | Model | Success Rate | Avg Latency | Min Latency | Max Latency | Queries/sec |
 |-------|-------------|-------------|-------------|-------------|-------------|
+| Mistral 7B | - | - | - | - | - |
 | Llama 3.1 8B | - | - | - | - | - |
-| Gemma 2 9B | - | - | - | - | - |
 
 ### Per-Question Results
+
+#### Mistral 7B
+*Results pending benchmark execution*
 
 #### Llama 3.1 8B
 *Results pending benchmark execution*
 
-#### Gemma 2 9B
-*Results pending benchmark execution*
-
 ## Analysis
 
-### Expected Findings (Based on Research)
-- **Llama 3.1 8B**: Expected to have lower latency due to smaller size and better optimization
-- **Gemma 2 9B**: Expected to have better context utilization (88.3% vs 86.2%) which may improve answer quality
-- **Quality Trade-off**: Llama 3.1 8B shows better benchmarks on HumanEval (72.6 vs 40.2)
-
 ### Recommendation
-*To be determined after actual benchmark execution*
+*To be determined after actual benchmark execution — run `python benchmarks/model_benchmark.py`
+against a live stack and replace the placeholders above with real numbers.*
 
 ## How to Run Benchmarks
 
 ```bash
 # Ensure Ollama is running with both models
+ollama pull mistral
 ollama pull llama3.1:8b
-ollama pull gemma2:9b
 
 # Run benchmark script
 python benchmarks/model_benchmark.py

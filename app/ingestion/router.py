@@ -1,7 +1,6 @@
 import os
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
@@ -22,7 +21,8 @@ async def upload_document(file: UploadFile = File(...)):
     Supports PDF and DOCX files. Extracts text, chunks it, generates embeddings,
     and stores in Qdrant + PostgreSQL with page numbers for citation accuracy.
     """
-    # Validate file size
+    # Validate file size by streaming through the underlying file object (avoids loading
+    # the whole upload into memory just to check its size)
     file_size = 0
     for chunk in file.file:
         file_size += len(chunk)
@@ -32,7 +32,7 @@ async def upload_document(file: UploadFile = File(...)):
                 detail=f"File size exceeds maximum of {settings.max_file_size} bytes",
             )
 
-    # Reset file pointer
+    # Reset file pointer so the subsequent .read() below gets the full content again
     await file.seek(0)
 
     # Validate file extension
@@ -90,6 +90,6 @@ async def upload_document(file: UploadFile = File(...)):
         )
 
     finally:
-        # Clean up temporary file
+        # Clean up temporary file regardless of success/failure above
         if os.path.exists(temp_path):
             os.remove(temp_path)

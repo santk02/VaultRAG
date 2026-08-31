@@ -23,10 +23,14 @@ class Settings(BaseSettings):
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
     qdrant_collection_name: str = "documents"
-    qdrant_vector_size: int = 384
+    qdrant_vector_size: int = (
+        384  # must match embedding_model's output dim (MiniLM = 384)
+    )
 
     # LLM Configuration
-    mode: Literal["cloud", "offline"] = "offline"
+    mode: Literal["cloud", "offline"] = (
+        "offline"  # switches generation backend; retrieval is identical either way
+    )
 
     # Cloud LLM
     anthropic_api_key: str = ""
@@ -34,11 +38,15 @@ class Settings(BaseSettings):
 
     # Local LLM (Ollama)
     ollama_base_url: str = "http://localhost:11434"
-    offline_model: str = "mistral"
-    alternative_model: str = "llama3.1:8b"
+    offline_model: str = (
+        "mistral"  # default dev model per blueprint (Ollama Mistral 7B)
+    )
+    alternative_model: str = "llama3.1:8b"  # for model_benchmark.py comparisons
 
     # Embedding Model
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_model: str = (
+        "sentence-transformers/all-MiniLM-L6-v2"  # local, free, 384-dim (see ARCHITECTURE.md)
+    )
     embedding_device: str = "cpu"
 
     # Reranker
@@ -57,7 +65,10 @@ class Settings(BaseSettings):
     chunk_size: int = 512
     chunk_overlap: int = 64
 
-    # Observability
+    # BM25 persistence — configurable so the index doesn't silently depend on the process's CWD
+    bm25_index_path: str = "bm25_index.pkl"
+
+    # Observability (Langfuse + OTel) — both are no-ops when keys are unset
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
     langfuse_host: str = "http://localhost:3000"
@@ -78,4 +89,4 @@ class Settings(BaseSettings):
         case_sensitive = False
 
 
-settings = Settings()
+settings = Settings()  # single process-wide settings instance, read at import time

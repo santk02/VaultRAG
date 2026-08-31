@@ -1,4 +1,36 @@
 services:
+  # VaultRAG API — builds from the repo Dockerfile; depends_on the two stores it needs
+  # at startup (db.connect() and Qdrant reachability checks both run on app boot)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vaultrag-app
+    ports:
+      - "8000:8000"
+    environment:
+      # Container-network hostnames, not localhost — mirrors .env.example but points
+      # at the other compose services by their service name.
+      - DATABASE_URL=postgresql://vaultrag:vaultrag@postgres:5432/vaultrag
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - MODE=${MODE:-offline}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_HOST=http://langfuse:3000
+      - BM25_INDEX_PATH=/data/bm25_index.pkl
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - bm25_data:/data  # persists the BM25 pickle across container restarts (separate from /app so code isn't shadowed)
+    networks:
+      - vaultrag-network
+
   # Qdrant Vector Database
   qdrant:
     image: qdrant/qdrant:v1.7.0
@@ -72,6 +104,7 @@ volumes:
   qdrant_data:
   postgres_data:
   langfuse_postgres_data:
+  bm25_data:
 
 networks:
   vaultrag-network:

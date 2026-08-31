@@ -16,7 +16,8 @@ class CitationChecker:
 
     def extract_citations(self, text: str) -> List[Tuple[str, int]]:
         """
-        Extract all citations from text.
+        Extract all citations from text. Regex mirrors the exact "[Source: filename, page N]"
+        format the system prompt (prompts.py) instructs the model to produce.
 
         Args:
             text: Text containing citations
@@ -69,7 +70,9 @@ class CitationChecker:
 
     def _split_sentences(self, text: str) -> List[str]:
         """Split text into sentences."""
-        # Simple sentence splitting - can be improved with NLP
+        # Regex splits on sentence-ending punctuation followed by whitespace and a
+        # capital letter, quote, or citation bracket — a heuristic, not a real sentence
+        # tokenizer, so abbreviations (e.g. "Corp.") can still cause false splits.
         sentences = re.split(r'(?<=[.!?])\s+(?=[A-Z"\[])', text)
         return [s.strip() for s in sentences if s.strip()]
 
@@ -118,7 +121,9 @@ class CitationChecker:
         if any(re.search(pattern, sentence) for pattern in factual_indicators):
             return True
 
-        # Default: factual sentences should have citations
+        # Default: treat anything reasonably long as a factual claim requiring a citation —
+        # biases toward stricter enforcement (a short transitional sentence might get
+        # flagged), which is the safer failure direction for a compliance tool.
         return len(sentence) > 20  # Longer sentences are more likely to be factual
 
     def strip_invalid_citations(self, answer: str, chunks: List[Chunk]) -> str:

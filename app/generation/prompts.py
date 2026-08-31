@@ -1,4 +1,6 @@
-# System prompt for citation-enforced generation
+# System prompt for citation-enforced generation — this is the product's core reliability
+# control: it forces every factual claim to carry a checkable citation and forces a
+# refusal instead of a guess when context is insufficient.
 SYSTEM_PROMPT = """You answer questions using ONLY the numbered context passages provided below.
 
 Rules:
@@ -18,32 +20,35 @@ Context passages are provided below. Each passage includes a source identifier w
 def build_context_text(chunks: list) -> str:
     """
     Build context text from chunks for the LLM prompt.
-    
+
     Args:
         chunks: List of Chunk objects with filename and page_number
-        
+
     Returns:
         Formatted context string with numbered passages
     """
     context_parts = []
     for i, chunk in enumerate(chunks, start=1):
+        # [i] numbering plus the literal "Source: filename, page N" phrase — the LLM is
+        # instructed to copy this exact phrase into its citations, and citation.py's
+        # regex must match this exact format for validation to work.
         context_part = (
             f"[{i}] (Source: {chunk.filename}, page {chunk.page_number})\n"
             f"{chunk.text}"
         )
         context_parts.append(context_part)
-    
+
     return "\n\n".join(context_parts)
 
 
 def build_user_prompt(question: str, context_text: str) -> str:
     """
     Build the user prompt with question and context.
-    
+
     Args:
         question: User's question
         context_text: Formatted context from chunks
-        
+
     Returns:
         Complete user prompt string
     """
