@@ -18,7 +18,7 @@ async def bm25_search(query: str, k: int = None) -> List[Tuple[str, int]]:
     if k is None:
         k = settings.bm25_top_k
 
-    # Load BM25 index
+    # Load BM25 index (pickle read from disk each call — see indexer.py for the persistence format)
     indexer = get_indexer()
     bm25_data = await indexer.get_bm25_index()
 
@@ -27,9 +27,9 @@ async def bm25_search(query: str, k: int = None) -> List[Tuple[str, int]]:
     chunk_ids = bm25_data.get("chunk_ids", [])
 
     if bm25 is None or not corpus:
-        return []
+        return []  # nothing indexed yet — caller treats this as "no BM25 signal"
 
-    # Tokenize query
+    # Tokenize query — must match the lowercase/whitespace tokenization used when the index was built
     query_tokens = query.lower().split()
 
     # Get BM25 scores
@@ -42,7 +42,8 @@ async def bm25_search(query: str, k: int = None) -> List[Tuple[str, int]]:
     results = [
         (chunk_ids[i], rank + 1)  # rank is 1-indexed
         for rank, i in enumerate(top_indices)
-        if scores[i] > 0  # Only return results with positive scores
+        if scores[i]
+        > 0  # a zero score means no query term overlap at all — exclude it, not just rank it low
     ]
 
     return results

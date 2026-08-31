@@ -1,5 +1,4 @@
 import pickle
-import uuid
 from typing import List
 
 from qdrant_client import QdrantClient
@@ -10,7 +9,6 @@ from app.config import settings
 from app.db import db
 from app.ingestion.chunker import Chunk
 from app.ingestion.embedder import embed_texts
-from app.ingestion.parser import compute_content_hash
 
 
 class Indexer:
@@ -22,7 +20,7 @@ class Indexer:
     """
 
     def __init__(self):
-        """Initialize indexer with Qdrant client."""
+        """Initialize indexer with Qdrant client (one client per Indexer singleton, not per call)."""
         self.qdrant_client = QdrantClient(
             host=settings.qdrant_host, port=settings.qdrant_port
         )
@@ -30,7 +28,7 @@ class Indexer:
         self.vector_size = settings.qdrant_vector_size
 
     async def ensure_collection(self):
-        """Create Qdrant collection if it doesn't exist."""
+        """Create Qdrant collection if it doesn't exist (idempotent — safe to call on every upload)."""
         collections = self.qdrant_client.get_collections().collections
         collection_names = [c.name for c in collections]
 
@@ -63,7 +61,8 @@ class Indexer:
         # canonical ID used by both Qdrant payloads and the database FK.
         doc_id = chunks[0].doc_id
 
-        # Check for duplicates by content hash
+        # Check for duplicates by content hash — re-uploading the same file is a no-op,
+        # not a duplicate row in Postgres or duplicate vectors in Qdrant.
         existing = await db.fetchrow(
             "SELECT doc_id FROM documents WHERE content_hash = $1", content_hash
         )
@@ -134,9 +133,13 @@ class Indexer:
         For production, this should be replaced with a persistent BM25 service.
         For now, we persist to disk using pickle.
         """
+        # Path is a setting (not a hardcoded relative filename) so the index location
+        # doesn't silently depend on the process's current working directory.
+        index_path = settings.bm25_index_path
+
         # Load existing index if exists
         try:
-            with open("bm25_index.pkl", "rb") as f:
+            with open(index_path, "rb") as f:
                 bm25_index = pickle.load(f)
                 corpus = bm25_index["corpus"]
                 chunk_ids = bm25_index["chunk_ids"]
@@ -149,11 +152,12 @@ class Indexer:
             corpus.append(chunk.text.lower().split())
             chunk_ids.append(chunk.chunk_id)
 
-        # Rebuild BM25 index
+        # Rebuild BM25 index from the full corpus — BM25Okapi has no incremental update API,
+        # so every ingestion re-scores IDF over all chunks seen so far.
         bm25 = BM25Okapi(corpus)
 
         # Persist to disk
-        with open("bm25_index.pkl", "wb") as f:
+        with open(index_path, "wb") as f:
             pickle.dump({"bm25": bm25, "corpus": corpus, "chunk_ids": chunk_ids}, f)
 
     async def get_bm25_index(self) -> dict:
@@ -164,13 +168,13 @@ class Indexer:
             Dictionary with bm25 instance, corpus, and chunk_ids
         """
         try:
-            with open("bm25_index.pkl", "rb") as f:
+            with open(settings.bm25_index_path, "rb") as f:
                 return pickle.load(f)
         except (FileNotFoundError, EOFError):
             return {"bm25": None, "corpus": [], "chunk_ids": []}
 
 
-# Global indexer instance
+# Global indexer instance — same singleton caveat as _embedder above
 _indexer: Indexer = None
 
 
