@@ -28,7 +28,8 @@ class DocumentMetadata(BaseModel):
 
 # Chunk Models
 class Chunk(BaseModel):
-    """A text chunk with metadata."""
+    """A text chunk with metadata. page_number is what makes citations real —
+    it must survive parsing, chunking, indexing, and retrieval unchanged."""
 
     chunk_id: str
     doc_id: str
@@ -36,7 +37,9 @@ class Chunk(BaseModel):
     page_number: int
     text: str
     token_count: Optional[int] = None
-    filename: Optional[str] = None  # Added during retrieval
+    filename: Optional[str] = (
+        None  # Added during retrieval (joined from `documents`, not stored on `chunks`)
+    )
 
 
 # Retrieval Models
