@@ -17,16 +17,17 @@ User Question → FastAPI → Retrieval Pipeline → Generation → Citation Che
 #### 1. API Layer (FastAPI)
 - **Purpose**: Request validation, routing, and response formatting
 - **Key Design**: Async endpoints for performance, Pydantic for validation
-- **Routers**: 
+- **Routers** (`app/api/`, `app/ingestion/router.py`, `app/extraction/router.py`):
   - `/v1/documents/upload` - Document ingestion
   - `/v1/retrieve` - Retrieval testing
   - `/v1/ask` - Full Q&A pipeline
-  - `/health` - Health checks
+  - `/v1/extract` - Structured extraction (Pydantic schema validated)
+  - `/health`, `/` - Health checks (`app/api/health_router.py`; probes Postgres with `SELECT 1` and Qdrant with `get_collections()`, not hardcoded)
 
 #### 2. Ingestion Pipeline
 - **Parser**: Extracts text + page numbers from PDF/DOCX
 - **Chunker**: Splits text into 512-token chunks with 64-token overlap
-- **Embedder**: Generates vector embeddings via Ollama bge-m3
+- **Embedder**: Generates vector embeddings locally via `sentence-transformers/all-MiniLM-L6-v2` (loaded once at module level, not per request)
 - **Indexer**: Stores vectors in Qdrant, builds BM25 index, writes to PostgreSQL
 
 **Critical Design Decision**: Page numbers are preserved through the entire pipeline. This is what turns "the model said so" into "page 14 of the AML policy says so."
@@ -89,7 +90,7 @@ User Question → FastAPI → Retrieval Pipeline → Generation → Citation Che
 **Qdrant (Vector Database)**
 - Purpose: Store and search embeddings
 - Why: Fast HNSW indexing, production-ready
-- Vector size: 1024 (bge-m3 output)
+- Vector size: 384 (all-MiniLM-L6-v2 output)
 - Distance: Cosine
 
 **PostgreSQL (Metadata)**
@@ -170,8 +171,8 @@ In regulated industries, data residency is often the deciding factor. One flag s
 | API | FastAPI | Async, typed, free OpenAPI docs |
 | Validation | Pydantic v2 | Schemas and settings in one library |
 | Model routing | LiteLLM | One interface for Claude and Ollama |
-| Local LLM | Ollama (Llama 3.1 8B) | Best benchmarks, 128k context, low VRAM |
-| Embeddings | bge-m3 via Ollama | Excellent RAG performance, widely adopted |
+| Local LLM | Ollama (Mistral 7B, `offline_model` default in `app/config.py`) | Solid instruction following at a size that runs comfortably on a laptop; `alternative_model` (`llama3.1:8b`) is available for benchmark comparison |
+| Embeddings | `sentence-transformers/all-MiniLM-L6-v2`, local | Free, no external service call, 384-dim, fast on CPU |
 | Reranker | cross-encoder/ms-marco-MiniLM-L-6-v2 | Big accuracy gain, small model |
 | Vector DB | Qdrant | Fast HNSW, production-ready |
 | Keyword | rank_bm25 | In-memory, no extra service |
