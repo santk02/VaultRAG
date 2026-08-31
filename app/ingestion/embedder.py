@@ -42,7 +42,10 @@ class Embedder:
         self.encoder = None
 
 
-# Global embedder instance (loaded once at module level)
+# Global embedder instance (loaded once at module level). Simple None-check singleton —
+# fine for FastAPI's single-process asyncio event loop; a double-init race is possible
+# under multiple worker processes/threads calling get_embedder() concurrently for the
+# first time, but each just loads its own model copy rather than corrupting state.
 _embedder: Embedder = None
 
 
