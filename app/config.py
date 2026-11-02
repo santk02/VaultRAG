@@ -28,9 +28,9 @@ class Settings(BaseSettings):
     )
 
     # LLM Configuration
-    mode: Literal["cloud", "offline"] = (
-        "offline"  # switches generation backend; retrieval is identical either way
-    )
+    mode: Literal[
+        "cloud", "offline"
+    ] = "offline"  # switches generation backend; retrieval is identical either way
 
     # Cloud LLM
     anthropic_api_key: str = ""
@@ -44,9 +44,7 @@ class Settings(BaseSettings):
     alternative_model: str = "llama3.1:8b"  # for model_benchmark.py comparisons
 
     # Embedding Model
-    embedding_model: str = (
-        "sentence-transformers/all-MiniLM-L6-v2"  # local, free, 384-dim (see ARCHITECTURE.md)
-    )
+    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"  # local, free, 384-dim (see ARCHITECTURE.md)
     embedding_device: str = "cpu"
 
     # Reranker

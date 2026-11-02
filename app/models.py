@@ -37,9 +37,9 @@ class Chunk(BaseModel):
     page_number: int
     text: str
     token_count: Optional[int] = None
-    filename: Optional[str] = (
-        None  # Added during retrieval (joined from `documents`, not stored on `chunks`)
-    )
+    filename: Optional[
+        str
+    ] = None  # Added during retrieval (joined from `documents`, not stored on `chunks`)
 
 
 # Retrieval Models

@@ -1,10 +1,10 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from app.config import settings
 from app.ingestion.indexer import get_indexer
 
 
-async def bm25_search(query: str, k: int = None) -> List[Tuple[str, int]]:
+async def bm25_search(query: str, k: Optional[int] = None) -> List[Tuple[str, int]]:
     """
     Perform BM25 keyword search on the document corpus.
 

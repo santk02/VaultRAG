@@ -1,5 +1,5 @@
 import re
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from app.models import Chunk
 
@@ -142,28 +142,32 @@ class CitationChecker:
         if is_valid:
             return answer
 
-        # Remove a whole sentence when its only citation is invalid. Keeping
-        # the prose would turn a rejected citation into an uncited claim.
-        valid_citation_strings = {
-            f"[Source: {filename}, page {page}]" for filename, page in valid_citations
-        }
+        valid_sources = set(valid_citations)
 
-        sentences = self._split_sentences(answer)
+        def keep_if_valid(match: re.Match) -> str:
+            # Drop only the hallucinated tag; valid tags in the same sentence stay put
+            source = (match.group(1).strip(), int(match.group(2)))
+            return match.group(0) if source in valid_sources else ""
+
         cleaned_sentences = []
-        for sentence in sentences:
+        for sentence in self._split_sentences(answer):
             sentence_citations = self.extract_citations(sentence)
-            if sentence_citations and any(
-                f"[Source: {filename}, page {page}]" not in valid_citation_strings
-                for filename, page in sentence_citations
+            if sentence_citations and not any(
+                citation in valid_sources for citation in sentence_citations
             ):
+                # Every citation was invalid: drop the whole sentence, since keeping
+                # the prose would turn a rejected citation into an uncited claim.
                 continue
-            cleaned_sentences.append(sentence)
+            cleaned = re.sub(self.CITATION_PATTERN, keep_if_valid, sentence)
+            # Tidy the gap a removed tag leaves behind ("text  ." -> "text.")
+            cleaned = re.sub(r"\s+([.,;:!?])", r"\1", re.sub(r"\s{2,}", " ", cleaned))
+            cleaned_sentences.append(cleaned.strip())
 
         return " ".join(cleaned_sentences).strip()
 
 
 # Global citation checker instance
-_checker: CitationChecker = None
+_checker: Optional[CitationChecker] = None
 
 
 def get_citation_checker() -> CitationChecker:

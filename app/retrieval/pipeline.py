@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from app.db import db
 from app.models import Chunk
@@ -24,7 +24,7 @@ async def _timed(coro, latencies: Dict[str, float], key: str):
 
 
 async def retrieval_pipeline(
-    query: str, top_k: int = 5
+    query: str, top_k: Optional[int] = 5
 ) -> tuple[List[Chunk], Dict[str, float]]:
     """
     Run the complete retrieval pipeline with all 4 stages.
@@ -42,7 +42,7 @@ async def retrieval_pipeline(
     Returns:
         Tuple of (list of Chunk objects, latency breakdown dict)
     """
-    latencies = {}
+    latencies: Dict[str, float] = {}
     total_start = time.time()
 
     # The independent searches share the same query and run concurrently; each is timed

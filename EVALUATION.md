@@ -102,7 +102,7 @@ python evaluation/run_ragas.py
 
 ### CI Integration
 
-Evaluation runs as a hard gate in CI:
+Evaluation runs in CI. **The threshold check is currently non-blocking** (`continue-on-error: true`): `evaluation/run_ragas.py` is a mock with fixed scores, so the comparison measures nothing real yet. Installing dependencies and running the evaluation script are still blocking. Restore the hard gate by removing `continue-on-error` once real RAGAS scoring is in place.
 
 ```yaml
 # .github/workflows/ci.yml

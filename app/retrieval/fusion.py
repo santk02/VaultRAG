@@ -1,8 +1,10 @@
-from typing import List
+from typing import List, Optional
 from app.config import settings
 
 
-def rrf(rank_lists: List[List[str]], k: int = None, top_n: int = None) -> List[str]:
+def rrf(
+    rank_lists: List[List[str]], k: Optional[int] = None, top_n: Optional[int] = None
+) -> List[str]:
     """
     Merge ranked ID lists using Reciprocal Rank Fusion (RRF).
 
@@ -34,7 +36,9 @@ def rrf(rank_lists: List[List[str]], k: int = None, top_n: int = None) -> List[s
             scores[chunk_id] = scores.get(chunk_id, 0.0) + 1.0 / (k + rank)
 
     # Sort by score (descending) and return top_n
-    sorted_results = sorted(scores, key=scores.get, reverse=True)[:top_n]
+    sorted_results = sorted(
+        scores, key=lambda chunk_id: scores[chunk_id], reverse=True
+    )[:top_n]
 
     return sorted_results
 

@@ -3,6 +3,7 @@ import uuid
 
 from fastapi import APIRouter, HTTPException
 
+from app.config import settings
 from app.db import db
 from app.generation.citation import get_citation_checker
 from app.generation.guards import get_output_guard
@@ -28,11 +29,14 @@ async def ask(request: AskRequest):
     """
     query_id = str(uuid.uuid4())
     total_start = time.time()
+    # Resolve once so generation, the audit row and the response all agree;
+    # an explicit null in the request falls back to the configured MODE.
+    mode = request.mode or settings.mode
 
     # Top-level Langfuse trace for the whole request (no-op if Langfuse is unconfigured);
     # the OTel span below is the vendor-neutral counterpart that's always active.
     lf_trace = start_trace(
-        "ask", input_data={"question": request.question, "mode": request.mode}
+        "ask", input_data={"question": request.question, "mode": mode}
     )
 
     with span("ask.request"):
@@ -50,7 +54,7 @@ async def ask(request: AskRequest):
                 return AskResponse(
                     answer="I don't have enough information in the provided documents to answer that.",
                     sources=[],
-                    mode=request.mode,
+                    mode=mode,
                     model_used="none",
                     latency_ms=retrieval_latency_ms,
                     retrieval_latency_ms=retrieval_latency_ms,
@@ -63,15 +67,17 @@ async def ask(request: AskRequest):
                     question=request.question,
                     chunks=chunks,
                     model_override=None,
-                    mode=request.mode,
+                    mode=mode,
                 )
 
             # Stage 3: Citation validation
             with span("ask.citation_check"):
                 citation_checker = get_citation_checker()
-                is_valid_citations, invalid_sentences, valid_citations = (
-                    citation_checker.validate_citations(answer, chunks)
-                )
+                (
+                    is_valid_citations,
+                    invalid_sentences,
+                    valid_citations,
+                ) = citation_checker.validate_citations(answer, chunks)
 
                 if not is_valid_citations:
                     # Strip invalid citations
@@ -109,7 +115,7 @@ async def ask(request: AskRequest):
                 query_id,
                 "system",  # user_id - would come from auth in production
                 request.question,
-                request.mode,
+                mode,
                 model_used,
                 ",".join(chunk_ids),
                 answer,
@@ -131,7 +137,7 @@ async def ask(request: AskRequest):
             return AskResponse(
                 answer=answer,
                 sources=sources,
-                mode=request.mode,
+                mode=mode,
                 model_used=model_used,
                 latency_ms=(time.time() - total_start) * 1000,
                 retrieval_latency_ms=retrieval_latency_ms,
@@ -154,7 +160,7 @@ async def ask(request: AskRequest):
                     query_id,
                     "system",
                     request.question,
-                    request.mode,
+                    mode,
                     "error",
                     "",
                     f"Error: {str(e)}",

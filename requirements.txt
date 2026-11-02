@@ -1,7 +1,7 @@
 # Web Framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-pydantic==2.5.0
+pydantic==2.4.2
 pydantic-settings==2.1.0
 python-multipart==0.0.6
 
@@ -18,24 +18,25 @@ pymupdf==1.23.8
 python-docx==1.1.0
 
 # Text Processing & Chunking
-langchain==0.1.0
+langchain==0.1.20
 langchain-text-splitters==0.0.1
 
 # Embeddings & Reranking
 sentence-transformers==2.2.2
+huggingface-hub==0.25.2  # sentence-transformers 2.2.2 imports cached_download, removed in hub 0.26
 rank-bm25==0.2.2
 
 # LLM Integration
-litellm==1.35.0
+litellm==1.14.4
 
 # Guardrails
 guardrails-ai==0.4.0
 
 # Observability
 langfuse==2.9.0
-opentelemetry-api==1.21.0
-opentelemetry-sdk==1.21.0
-opentelemetry-instrumentation-fastapi==0.42b0
+opentelemetry-api==1.22.0
+opentelemetry-sdk==1.22.0
+opentelemetry-instrumentation-fastapi==0.43b0
 
 # Evaluation
 ragas==0.1.7
@@ -51,6 +52,7 @@ aiofiles==23.2.1
 # Testing
 pytest==7.4.3
 pytest-asyncio==0.21.1
+pytest-cov==4.1.0  # CI runs `pytest --cov=app`
 httpx==0.25.2
 
 # Development

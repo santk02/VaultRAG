@@ -1,6 +1,5 @@
 from typing import Optional
-from guardrails import Guard
-from guardrails.hub import ToxicLanguage, PIIFilter
+
 from app.config import settings
 
 
@@ -24,6 +23,13 @@ class OutputGuard:
         # as Langfuse in tracing.py, so validate_all() is a safe no-op in dev/CI.
         if settings.guardrails_api_key:
             try:
+                # Imported here, not at module level: hub validators are installed
+                # separately (`guardrails hub install hub://guardrails/toxic_language`
+                # and `.../guardrails_pii`), and a missing one must degrade to a no-op
+                # guard instead of crashing the app at import time.
+                from guardrails import Guard
+                from guardrails.hub import PIIFilter, ToxicLanguage
+
                 self.toxic_guard = Guard().use_many(ToxicLanguage, threshold=0.5)
                 self.pii_guard = Guard().use_many(
                     PIIFilter, pii_entities=["EMAIL", "PHONE", "SSN", "CREDIT_CARD"]
@@ -133,7 +139,7 @@ class OutputGuard:
 
 
 # Global guard instance
-_guard: OutputGuard = None
+_guard: Optional[OutputGuard] = None
 
 
 def get_output_guard() -> OutputGuard:

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -46,7 +46,7 @@ class Embedder:
 # fine for FastAPI's single-process asyncio event loop; a double-init race is possible
 # under multiple worker processes/threads calling get_embedder() concurrently for the
 # first time, but each just loads its own model copy rather than corrupting state.
-_embedder: Embedder = None
+_embedder: Optional[Embedder] = None
 
 
 def get_embedder() -> Embedder:

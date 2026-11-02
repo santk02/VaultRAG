@@ -53,7 +53,7 @@ def test_build_user_prompt():
 def test_system_prompt():
     """Test that system prompt contains required rules."""
     assert "citation" in SYSTEM_PROMPT.lower()
-    assert "source:" in SYSTEM_PROMPT
+    assert "[Source: filename, page N]" in SYSTEM_PROMPT  # exact format citation.py parses
     assert "page" in SYSTEM_PROMPT.lower()
     assert "enough information" in SYSTEM_PROMPT.lower()
 
@@ -156,6 +156,32 @@ def test_citation_strip_invalid():
 
     assert "[Source: report.pdf, page 5]" in cleaned
     assert "[Source: report.pdf, page 10]" not in cleaned
+
+
+def test_citation_strip_drops_sentence_with_only_invalid_citations():
+    """A sentence whose every citation is hallucinated is dropped entirely, so the
+    claim isn't left behind uncited; sentences with valid citations survive."""
+    checker = CitationChecker()
+
+    chunks = [
+        Chunk(
+            chunk_id="chunk_1",
+            doc_id="doc_1",
+            chunk_index=0,
+            page_number=5,
+            text="Content",
+            token_count=10,
+            filename="report.pdf",
+        )
+    ]
+
+    answer = (
+        "The ratio is 8% [Source: report.pdf, page 5]. "
+        "The buffer is 2.5% [Source: report.pdf, page 99]."
+    )
+    cleaned = checker.strip_invalid_citations(answer, chunks)
+
+    assert cleaned == "The ratio is 8% [Source: report.pdf, page 5]."
 
 
 def test_sentence_splitting():

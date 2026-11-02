@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from sentence_transformers import CrossEncoder
 from app.config import settings
 
@@ -23,7 +23,7 @@ class Reranker:
             self.model = CrossEncoder(self.model_name, device=self.device)
 
     async def rerank(
-        self, query: str, chunk_ids: List[str], top_k: int = None
+        self, query: str, chunk_ids: List[str], top_k: Optional[int] = None
     ) -> List[Tuple[str, float]]:
         """
         Rerank chunks by scoring (query, chunk) pairs.
@@ -88,7 +88,7 @@ class Reranker:
 
 
 # Global reranker instance (module-level singleton, same pattern as get_indexer()/get_embedder())
-_reranker: Reranker = None
+_reranker: Optional[Reranker] = None
 
 
 def get_reranker() -> Reranker:
@@ -100,7 +100,7 @@ def get_reranker() -> Reranker:
 
 
 async def rerank_chunks(
-    query: str, chunk_ids: List[str], top_k: int = None
+    query: str, chunk_ids: List[str], top_k: Optional[int] = None
 ) -> List[Tuple[str, float]]:
     """
     Convenience function to rerank chunks.

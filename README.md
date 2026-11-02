@@ -320,7 +320,7 @@ pytest tests/ -v
 
 # RAGAS-style evaluation (currently a documented mock — see evaluation/run_ragas.py)
 python evaluation/run_ragas.py
-python scripts/check_thresholds.py   # CI's hard gate: exits 1 below threshold
+python scripts/check_thresholds.py   # exits 1 below threshold (non-blocking in CI while run_ragas.py is a mock)
 
 # Retrieval ablation table (BM25 / vector / hybrid+RRF / hybrid+RRF+rerank)
 python benchmarks/retrieval_ablation.py
