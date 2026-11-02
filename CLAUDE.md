@@ -32,7 +32,7 @@ mypy app/ --ignore-missing-imports
 
 # Evaluation and benchmarks (need live services + indexed docs)
 python evaluation/run_ragas.py
-python scripts/check_thresholds.py        # CI gate: exits 1 below evaluation/thresholds.json
+python scripts/check_thresholds.py        # exits 1 below evaluation/thresholds.json; non-blocking in CI until RAGAS is real
 python benchmarks/retrieval_ablation.py
 python benchmarks/model_benchmark.py
 ```
