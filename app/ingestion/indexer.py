@@ -1,5 +1,5 @@
 import pickle
-from typing import List
+from typing import List, Optional
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
@@ -175,7 +175,7 @@ class Indexer:
 
 
 # Global indexer instance — same singleton caveat as _embedder above
-_indexer: Indexer = None
+_indexer: Optional[Indexer] = None
 
 
 def get_indexer() -> Indexer:

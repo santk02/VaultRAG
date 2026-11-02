@@ -62,16 +62,19 @@ Offline mode needs Ollama running with the models pulled: `ollama pull mistral` 
 - `snake_case` functions/modules, `PascalCase` classes, `UPPER_SNAKE` constants. Test files `test_<module>.py`, test functions `test_<behavior>` with a one-line docstring.
 - I/O-bound code is `async`; routers use `APIRouter(prefix="/v1/...", tags=[...])` and Pydantic models from `app/models.py`.
 - Config only through `app.config.settings` (env names are the upper-cased field names); add new knobs to both `config.py` and `.env.example`.
-- Process-wide objects use the singleton pattern already in the repo: `_thing: Thing = None` plus `get_thing()`.
+- Process-wide objects use the singleton pattern already in the repo: `_thing: Optional[Thing] = None` plus `get_thing()`. Parameters that default to `None` are `Optional[...]` — mypy is clean, keep it that way.
 - Type hints: match the surrounding file (`typing.List/Optional` or builtin `tuple[...]`); don't mix styles within a file.
 - IDs: `doc_id` is a UUID4 string; `chunk_id` is `f"{doc_id}_chunk_{index}"`.
 
 ## Known gotchas
 
-- No `pyproject.toml`/`pytest.ini`/Makefile — tool config lives in CI and `requirements.txt`.
-- CI runs `pytest --cov=app` but `pytest-cov` is **not** in `requirements.txt`; the CI test job will fail until it's added.
-- `mypy app/` reports ~29 pre-existing "implicit Optional" errors (`x: int = None` signatures); the CI lint job is red until those are fixed. Don't add new ones — write `Optional[int] = None`.
-- `tests/test_health.py` expects `status == "ok"`, which requires live Postgres + Qdrant (CI provides both as service containers).
+- Tool versions are pinned in `requirements.txt` and CI's lint job installs the same pins — bump both together. Newer ruff/black disagree with the pinned ones (newer ruff flags ~137 issues).
+- `pytest.ini` puts the repo root on `sys.path`; without it `pytest tests/` can't import `app`.
+- **Dependency pins are constrained.** `litellm` 1.15–1.52 are gone from PyPI and `guardrails-ai==0.4.0` caps `tiktoken<0.6`, which rules out litellm ≥1.53. The pinned `litellm==1.14.4` calls Anthropic's legacy `/v1/complete` endpoint, so **cloud mode does not work with current Claude models** until the LLM stack (litellm, tiktoken, guardrails, langchain, ragas) is upgraded together. Offline mode is unaffected.
+- `huggingface-hub` is pinned below 0.26 because `sentence-transformers==2.2.2` imports the removed `cached_download`.
+- litellm downloads the `cl100k_base` tokenizer on import. On an air-gapped host, pre-populate `TIKTOKEN_CACHE_DIR` or offline mode can't start.
+- Guardrails hub validators (`ToxicLanguage`, `PIIFilter`) are not part of the pip package — install them with `guardrails hub install`. Without them `OutputGuard` logs a warning and becomes a no-op.
+- `tests/test_health.py` expects `status == "ok"`, which requires live Postgres + Qdrant (CI provides both as service containers); the fixture uses `with TestClient(app)` so startup actually connects the DB pool.
 - `evaluation/run_ragas.py` is a mock (fixed scores), `evaluation/test_set.json` has 5 questions (blueprint says 50), `scripts/bulk_ingest.py` doesn't call the API yet, and `data/sources.md` is a stub. Don't present their output as real measurements.
 - Scanned PDFs (no text layer) are rejected at parse time by design; table extraction and OCR are documented non-goals.
 - The BM25 index is a pickle at `BM25_INDEX_PATH`, rebuilt in full on every upload — fine for a demo corpus, not for scale.

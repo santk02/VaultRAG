@@ -5,8 +5,10 @@ from app.main import app
 
 @pytest.fixture
 def client():
-    """Create a test client."""
-    return TestClient(app)
+    """Create a test client inside a `with` block so startup/shutdown events run —
+    without it db.connect() never fires and /health always reports "degraded"."""
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 def test_health_check(client):
