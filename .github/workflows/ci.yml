@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ruff black mypy
+          pip install ruff==0.1.6 black==23.12.0 mypy==1.7.1  # keep in sync with requirements.txt
       - name: Run Ruff
         run: ruff check app/
       - name: Run Black
@@ -106,6 +106,10 @@ jobs:
           QDRANT_HOST: localhost
           QDRANT_PORT: 6333
       - name: Check thresholds
+        # Non-blocking for now: evaluation/run_ragas.py is a mock with fixed scores, so this
+        # comparison measures nothing real. A failure still shows on this step but doesn't
+        # fail CI. Remove continue-on-error once run_ragas.py runs a real RAGAS evaluation.
+        continue-on-error: true
         run: |
           python scripts/check_thresholds.py
         env:

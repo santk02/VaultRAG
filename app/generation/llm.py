@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import litellm
 
@@ -26,7 +26,9 @@ class LLMGenerator:
         # "anthropic/" model prefix and don't use this setting.
         litellm.api_base = self.ollama_base_url
 
-    def get_model_name(self, model_override: str = None, mode: str = None) -> str:
+    def get_model_name(
+        self, model_override: Optional[str] = None, mode: Optional[str] = None
+    ) -> str:
         """
         Get the appropriate model name based on mode and configuration.
 
@@ -51,8 +53,8 @@ class LLMGenerator:
         self,
         question: str,
         chunks: List[Chunk],
-        model_override: str = None,
-        mode: str = None,
+        model_override: Optional[str] = None,
+        mode: Optional[str] = None,
     ) -> tuple[str, str, float]:
         """
         Generate an answer to the question using the retrieved chunks.
@@ -96,7 +98,10 @@ class LLMGenerator:
             raise RuntimeError(f"LLM generation failed: {str(e)}")
 
     async def complete(
-        self, prompt: str, model_override: str = None, mode: str = None
+        self,
+        prompt: str,
+        model_override: Optional[str] = None,
+        mode: Optional[str] = None,
     ) -> tuple[str, str, float]:
         """
         Raw single-turn completion without the citation-enforcing SYSTEM_PROMPT.
@@ -125,7 +130,7 @@ class LLMGenerator:
 
 
 # Global generator instance
-_generator: LLMGenerator = None
+_generator: Optional[LLMGenerator] = None
 
 
 def get_generator() -> LLMGenerator:
@@ -137,7 +142,10 @@ def get_generator() -> LLMGenerator:
 
 
 async def generate_answer(
-    question: str, chunks: List[Chunk], model_override: str = None, mode: str = None
+    question: str,
+    chunks: List[Chunk],
+    model_override: Optional[str] = None,
+    mode: Optional[str] = None,
 ) -> tuple[str, str, float]:
     """
     Convenience function to generate an answer.

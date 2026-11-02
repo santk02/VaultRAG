@@ -7,9 +7,9 @@ class Database:
     """Database connection manager."""
 
     def __init__(self):
-        self.pool: Optional[asyncpg.Pool] = (
-            None  # None until connect() runs on app startup
-        )
+        self.pool: Optional[
+            asyncpg.Pool
+        ] = None  # None until connect() runs on app startup
 
     async def connect(self):
         """Create connection pool."""
@@ -22,19 +22,27 @@ class Database:
         if self.pool:
             await self.pool.close()
 
+    def _require_pool(self) -> asyncpg.Pool:
+        """Return the pool, or fail clearly if connect() never ran (e.g. startup skipped)."""
+        if self.pool is None:
+            raise RuntimeError(
+                "Database pool is not initialized; call db.connect() first"
+            )
+        return self.pool
+
     async def execute(self, query: str, *args) -> str:
         """Execute a query and return the status."""
-        async with self.pool.acquire() as conn:
+        async with self._require_pool().acquire() as conn:
             return await conn.execute(query, *args)
 
     async def fetch(self, query: str, *args) -> list:
         """Fetch rows from a query."""
-        async with self.pool.acquire() as conn:
+        async with self._require_pool().acquire() as conn:
             return await conn.fetch(query, *args)
 
     async def fetchrow(self, query: str, *args) -> Optional[asyncpg.Record]:
         """Fetch a single row from a query."""
-        async with self.pool.acquire() as conn:
+        async with self._require_pool().acquire() as conn:
             return await conn.fetchrow(query, *args)
 
     async def is_healthy(self) -> bool:

@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from qdrant_client import QdrantClient
 from app.ingestion.embedder import embed_texts
 from app.config import settings
@@ -6,7 +6,7 @@ from app.config import settings
 # Module-level singleton client — mirrors get_indexer()/get_embedder(); creating a new
 # QdrantClient (and its TCP connection) per search call was the same "load per request"
 # anti-pattern the blueprint calls out for the embedder.
-_client: QdrantClient = None
+_client: Optional[QdrantClient] = None
 
 
 def get_qdrant_client() -> QdrantClient:
@@ -17,7 +17,7 @@ def get_qdrant_client() -> QdrantClient:
     return _client
 
 
-async def vector_search(query: str, k: int = None) -> List[Tuple[str, int]]:
+async def vector_search(query: str, k: Optional[int] = None) -> List[Tuple[str, int]]:
     """
     Perform vector similarity search using Qdrant.
 
@@ -51,6 +51,8 @@ async def vector_search(query: str, k: int = None) -> List[Tuple[str, int]]:
     results = [
         (result.payload["chunk_id"], rank + 1)  # rank is 1-indexed
         for rank, result in enumerate(search_results)
+        # with_payload=True always returns one, but the client types it as Optional
+        if result.payload is not None
     ]
 
     return results

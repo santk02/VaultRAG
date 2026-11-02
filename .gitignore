@@ -38,6 +38,9 @@ env/
 .env
 .env.local
 
+# Personal Claude Code notes (machine-specific paths, local overrides)
+CLAUDE.local.md
+
 # Data and generated files
 data/sample_docs/*
 !data/sample_docs/.gitkeep
